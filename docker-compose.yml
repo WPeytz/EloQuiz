@@ -1,0 +1,18 @@
+version: '3.8'
+services:
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "8080:80"
+
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "5000:5000"
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
+    volumes:
+      - ./backend:/app
+      - ./backend/serviceAccountKey.json:/app/credentials.json
