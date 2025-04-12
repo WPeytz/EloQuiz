@@ -1,0 +1,24 @@
+steps:
+  # Build backend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build',
+      '--platform=linux/amd64',
+      '-t', 'gcr.io/adaptivelearning-449114/adaptivelearning-backend',
+      '-f', 'backend/Dockerfile',
+      './backend'
+    ]
+
+  # Build frontend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build',
+      '--platform=linux/amd64',
+      '-t', 'gcr.io/adaptivelearning-449114/adaptivelearning-frontend',
+      '-f', 'frontend/Dockerfile',
+      './frontend'
+    ]
+
+images:
+  - 'gcr.io/adaptivelearning-449114/adaptivelearning-backend'
+  - 'gcr.io/adaptivelearning-449114/adaptivelearning-frontend'
