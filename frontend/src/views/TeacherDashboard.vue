@@ -9,6 +9,7 @@
 
     <button @click="viewStudentProgress">Se Elevfremgang</button> 
     <button @click="$router.push('/view-questions')"> Se Quizspørgsmål </button>
+    <button @click="giveFeedback">Giv Feedback</button>
     <button @click="logOut" class="logout-button">Log ud</button>
   </div>
 </template>
@@ -105,6 +106,9 @@ export default {
       } else {
         console.log("Error: Teacher ID not found.");
       }
+    },
+    giveFeedback() {
+      open("https://docs.google.com/forms/d/e/1FAIpQLScBSNJ5Gdm8ba-RWPdyRqIV4fkwxi8pMMI-5H5b8EshEXXEUw/viewform", "_blank");
     },
     async logOut() {
       const auth = getAuth();

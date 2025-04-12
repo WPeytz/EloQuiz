@@ -8,6 +8,7 @@
       <button @click="startQuiz">Start Quiz</button>
       <button @click="viewStatistics">Statistik</button>
       <button @click="openLinkModal">Link med Lærer</button>
+      <button @click="giveFeedback">Giv Feedback</button>
       <button @click="logOut" class="logout-button">Log ud</button>
   
       <!-- Modal for linking with teacher -->
@@ -101,6 +102,9 @@
           console.error("Fejl ved tilknytning til lærer:", error.message);
           alert("Kunne ikke forbinde til lærer: " + error.message);
         }
+      },
+      giveFeedback() {
+        open("https://docs.google.com/forms/d/e/1FAIpQLSdfK7NDDy4MTmIfBU7QC0POQZDxK6KQ9kkNtw_wI9ZCiCgXuA/viewform?usp=dialog", "_blank");
       },
       logOut() {
         const auth = getAuth(firebaseApp);

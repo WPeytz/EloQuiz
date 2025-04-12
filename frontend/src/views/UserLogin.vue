@@ -3,7 +3,6 @@
     <div class="login-box">
       <h1>Velkommen til EloQuiz.dk</h1>
       <p>Log ind for at fortsætte din læringsrejse.</p>
-      <p> Backup Test</p>
       <form @submit.prevent="login">
         <div class="form-group">
           <label for="email">Email</label>
