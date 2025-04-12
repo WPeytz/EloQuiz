@@ -1,0 +1,7 @@
+Flask
+gunicorn
+flask-cors
+firebase-admin
+python-dotenv
+openai>=1.0.0
+google-cloud-secret-manager

@@ -1,5 +1,6 @@
 # Use an official Python runtime as a parent image
-FROM --platform=linux/amd64 node:lts-alpine
+#FROM --platform=linux/amd64 node:lts-alpine
+FROM --platform= --platform=linux/arm64 node:lts-alpine
 
 # install simple http server for serving static content
 RUN npm install -g serve
