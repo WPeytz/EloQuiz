@@ -1,6 +1,6 @@
 # 📚 EloQuiz – Adaptive Learning with Elo and AI
 
-EloQuiz is an adaptive quiz platform built to help middle school students practice math (and other subjects) through dynamically generated questions. It uses an Elo-based rating system to adjust difficulty, OpenAI's GPT for content generation, and Firebase for user management and data storage.
+EloQuiz is an adaptive quiz platform built to help middle school students practice math through dynamically generated questions. It uses an Elo-based rating system to adjust difficulty, OpenAI's GPT for content generation, and Firebase for user management and data storage.
 
 ---
 
@@ -17,10 +17,15 @@ EloQuiz is an adaptive quiz platform built to help middle school students practi
 
 ## 🧱 Project Structure
 EloQuiz/
+
 ├── backend/             # Flask API, Elo logic, OpenAI question generation
+
 ├── frontend/            # Vue.js frontend (SPA)
+
 ├── .env.example         # Environment variable template
+
 ├── deploy.sh            # Deployment script to GCP
+
 └── README.md            # You’re here!
 
 ---
