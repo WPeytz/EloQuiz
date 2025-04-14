@@ -59,11 +59,24 @@
     },
     methods: {
       async startQuiz() {
-        const response = await fetch(`${process.env.VUE_APP_API_URL}/api/get_next_question?user_id=${this.user.uid}`, {
-          method: "GET",
-        });
-        const data = await response.json();
-        this.$router.push("/quiz/"+data.id);
+        try {
+          const response = await fetch(`${process.env.VUE_APP_API_URL}/api/get_next_question?user_id=${this.user.uid}`, {
+            method: "GET",
+          });
+          const data = await response.json();
+          const questionId = data?.id;
+
+          if (!questionId) {
+            console.error("Invalid question ID received:", data);
+            alert("Der opstod en fejl. Prøv venligst igen.");
+            return;
+          }
+
+          this.$router.push("/quiz/" + questionId);
+        } catch (error) {
+          console.error("Error fetching question:", error.message);
+          alert("Kunne ikke hente spørgsmålet. Prøv venligst igen.");
+        }
       },
       viewStatistics() {
         this.$router.push("/statistics");

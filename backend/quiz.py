@@ -70,14 +70,25 @@ def remove_question():
 
 @quiz_bp.route('/api/get_next_question', methods=['GET'])
 def get_next_question():
-    user_id = request.args.get('user_id', 'test_user')
-    user_ref = db_firestore.collection('users').document(user_id)
-    user_data = user_ref.get().to_dict() or {}
+    user_id = request.args.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Missing user_id'}), 400
 
-    # Ensure 'question_answers' list exists
+    try:
+        user_ref = db_firestore.collection('users').document(user_id)
+        user_snapshot = user_ref.get()
+        if not user_snapshot.exists:
+            return jsonify({'error': 'User not found'}), 404
+        user_data = user_snapshot.to_dict()
+        if user_data.get('role') != 'student':
+            return jsonify({'error': 'Unauthorized: Only students can start the quiz.'}), 403
+    except Exception as e:
+        return jsonify({'error': f'Error fetching user data: {str(e)}'}), 500
+
+    # Ensure 'question_answers' list exists in the validated user_data
     if 'question_answers' not in user_data:
-        db_firestore.collection('users').document(user_id).update({'question_answers': []})
         user_data['question_answers'] = []
+        db_firestore.collection('users').document(user_id).update({'question_answers': []})
 
     # If the user has an 'elo' dict, great; otherwise default to {}
     student_elos = user_data.get('elo', {})
@@ -92,6 +103,7 @@ def get_next_question():
         qdata = doc.to_dict()
         qdata["id"] = doc.id
         unanswered_questions.append(qdata)
+    print("Unanswered questions retrieved:", unanswered_questions)
 
     # 2. If there are no unanswered questions, generate a new one
     if not unanswered_questions:
@@ -102,7 +114,7 @@ def get_next_question():
             'difficulty': _get_difficulty_for_student(student_elos, topic)
         }
         question = _gen_question(data)
-        return jsonify({'id': question['id']})
+        return jsonify({'id': question.get('id')})
 
     # 3. Among unanswered questions, pick the one whose Elo is closest to the student's Elo
     #    for that question's topic. If no student Elo for that topic, default to 1000.
@@ -124,7 +136,13 @@ def get_next_question():
     # 4. Pick a random question among those with the smallest diff
     if best_diff is not None and best_diff <= 200:
         chosen_question = random.choice(best_questions)
-        return jsonify({'id': chosen_question['id']})
+        if isinstance(chosen_question, dict):
+            question_id = chosen_question.get('id')
+            print("Chosen question ID:", question_id)
+            return jsonify({'id': question_id})
+        else:
+            print("Chosen question is not a dict:", chosen_question)
+            return jsonify({'error': 'Invalid question format'}), 500
     else:
         # No suitable question found, generate a new one
         topic = random.choice(MATH_TOPICS)
@@ -134,18 +152,23 @@ def get_next_question():
             'difficulty': _get_difficulty_for_student(student_elos, topic)
         }
         question = _gen_question(data)
-        return jsonify({'id': question['id']})
+        print("Question generated via get_next_question route", _get_difficulty_for_student(student_elos, topic))
+        if isinstance(question, dict) and 'id' in question:
+            return jsonify({'id': question['id']})
+        else:
+            print("Failed to generate valid question:", question)
+            return jsonify({'error': 'Question generation failed'}), 500
     
     
 def _get_difficulty_for_student(elos, topic):
     topic_elo = elos.get(topic, 1000)
-    if topic_elo >= 1800:
+    if topic_elo >= 1500:
         return "Very Hard"
-    elif topic_elo >= 1600:
+    elif topic_elo >= 1300:
         return "Hard"
-    elif topic_elo >= 1400:
+    elif topic_elo >= 1100:
         return "Medium"
-    elif topic_elo >= 1200:
+    elif topic_elo >= 900:
         return "Easy"
     else:
         return "Very Easy"
@@ -154,10 +177,9 @@ def _gen_question(data):
 
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        return jsonify({"error": "Missing OpenAI API key"}), 500  # Handle missing key
+        raise ValueError("Missing OpenAI API key")
     client = OpenAI(api_key=api_key)
 
-    
     user_id = data.get("user_id", "test_user")
     topic = data.get("topic", random.choice(MATH_TOPICS))
     
@@ -165,24 +187,10 @@ def _gen_question(data):
     user_data = user_ref.get().to_dict() or {}
     student_elos = user_data.get('elo', {})
     difficulty = data.get("difficulty") or _get_difficulty_for_student(student_elos, topic)
-    
-    print(user_id, topic, difficulty)
-
 
     user_ref = db.reference(f'performance/{user_id}')
     performance_data = user_ref.get() or {"correct_streak": 0, "incorrect_streak": 0}
     correct_streak = performance_data.get("correct_streak", 0)
-
-    random_contexts = [
-        "in a real-world shopping scenario",
-        "while planning a school event",
-        "in a geometry problem involving shapes",
-        "to solve an everyday math problem",
-        "for understanding ratios in a recipe"
-    ]
-    random_context = random.choice(random_contexts)
-    
-    #{random_context}
 
     prompt = f"""
     Create a unique {difficulty}-level multiple-choice question about {topic}.
@@ -211,7 +219,7 @@ def _gen_question(data):
         question_obj = json.loads(raw_content)
     except Exception as e:
         print("JSON parse error:", str(e))
-        return jsonify({"error": "Invalid question format"}), 500
+        return {"error": "Invalid question format"}
 
     question_obj["correct_streak"] = correct_streak
     
@@ -227,23 +235,27 @@ def _gen_question(data):
         initial_elo = 1600
     else:
         initial_elo = 1000
-    
-    _,  doc_ref= db_firestore.collection('questions').add({
-        'question': question_obj["question"],
-        'options': question_obj["options"],
-        'answer': question_obj["answer"],
-        'topic': topic,
-        'difficulty': difficulty,
-        'elo': initial_elo,
-    })
-    
-    question_obj["id"] = doc_ref.id
-    question_obj["topic"] = topic
-    question_obj["difficulty"] = difficulty
-    question_obj["elo"] = 1000
-    
-    
-    return question_obj
+    try:
+        _, doc_ref = db_firestore.collection('questions').add({
+            'question': question_obj["question"],
+            'options': question_obj["options"],
+            'answer': question_obj["answer"],
+            'topic': topic,
+            'difficulty': difficulty,
+            'elo': initial_elo,
+        })
+        
+        question_obj["id"] = doc_ref.id
+        print("Generated question with ID:", doc_ref.id)
+        question_obj["topic"] = topic
+        question_obj["difficulty"] = difficulty
+        question_obj["elo"] = initial_elo
+
+        return question_obj
+
+    except Exception as e:
+        print("Failed to store question:", str(e))
+        return {"error": "Could not save question", "details": str(e)}
 
 
 @quiz_bp.route('/api/generate_question', methods=['POST'])
@@ -313,9 +325,6 @@ def submit_answer():
         score_question = 0 if is_correct else 1
 
     # Compute new Elo scores
-    new_student_elo, new_question_elo = update_elo(student_elo, question_elo, score_student, score_question)
-    
-    # Calculate new Elo ratings using the same update_elo function
     new_student_elo, new_question_elo = update_elo(student_elo, question_elo, score_student, score_question)
     
     # Update the student's Elo for the topic

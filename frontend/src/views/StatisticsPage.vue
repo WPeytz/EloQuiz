@@ -60,8 +60,6 @@
           for (const [key, value] of Object.entries(data_pre_prossed.per_topics)) {
             this.stats[key] = {
               accuracy: Math.round(value.accuracy * 100),
-              avg_time_per_question: value.avg_time_per_question / 1000,
-              skill_level: value.skill_level,
               elo: value.elo, // include the elo returned from the backend
               num_answered: value.num_answered, // assuming backend returns this
             };
