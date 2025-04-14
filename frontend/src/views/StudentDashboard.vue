@@ -8,6 +8,7 @@
       <button @click="startQuiz">Start Quiz</button>
       <button @click="viewStatistics">Statistik</button>
       <button @click="openLinkModal">Link med Lærer</button>
+      <button @click="giveFeedback">Giv Feedback</button>
       <button @click="logOut" class="logout-button">Log ud</button>
   
       <!-- Modal for linking with teacher -->
@@ -58,11 +59,24 @@
     },
     methods: {
       async startQuiz() {
-        const response = await fetch(`${process.env.VUE_APP_API_URL}/api/get_next_question?user_id=${this.user.uid}`, {
-          method: "GET",
-        });
-        const data = await response.json();
-        this.$router.push("/quiz/"+data.id);
+        try {
+          const response = await fetch(`${process.env.VUE_APP_API_URL}/api/get_next_question?user_id=${this.user.uid}`, {
+            method: "GET",
+          });
+          const data = await response.json();
+          const questionId = data?.id;
+
+          if (!questionId) {
+            console.error("Invalid question ID received:", data);
+            alert("Der opstod en fejl. Prøv venligst igen.");
+            return;
+          }
+
+          this.$router.push("/quiz/" + questionId);
+        } catch (error) {
+          console.error("Error fetching question:", error.message);
+          alert("Kunne ikke hente spørgsmålet. Prøv venligst igen.");
+        }
       },
       viewStatistics() {
         this.$router.push("/statistics");
@@ -101,6 +115,9 @@
           console.error("Fejl ved tilknytning til lærer:", error.message);
           alert("Kunne ikke forbinde til lærer: " + error.message);
         }
+      },
+      giveFeedback() {
+        open("https://docs.google.com/forms/d/e/1FAIpQLSdfK7NDDy4MTmIfBU7QC0POQZDxK6KQ9kkNtw_wI9ZCiCgXuA/viewform?usp=dialog", "_blank");
       },
       logOut() {
         const auth = getAuth(firebaseApp);

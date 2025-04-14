@@ -11,6 +11,7 @@
       <label for="sort">Sortér efter:</label>
       <select id="sort" v-model="sortOption" @change="sortQuestions">
         <option value="closest">Tættest på 1000 Elo</option>
+        <option value="mostanswered">Mest besvarede</option>
         <option value="asc">Laveste Elo først</option>
         <option value="desc">Højeste Elo først</option>
       </select>
@@ -115,6 +116,8 @@ export default {
         this.questions.sort((a, b) => b.elo - a.elo);
       } else if (this.sortOption === "closest") {
         this.questions.sort((a, b) => Math.abs(a.elo - 1000) - Math.abs(b.elo - 1000));
+      } else if (this.sortOption === "mostanswered") {
+        this.questions.sort((a, b) => b.answeredCount - a.answeredCount);
       }
     }
   },
