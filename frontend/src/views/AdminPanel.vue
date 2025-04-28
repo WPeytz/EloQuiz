@@ -60,7 +60,13 @@
         }
       },
       logout() {
-        this.$router.push('/login');
+        import('@/firebase').then(({ auth }) => {
+          auth.signOut().then(() => {
+            this.$router.push('/login');
+          }).catch((error) => {
+            console.error('Logout error:', error);
+          });
+        });
       }
     }
   };

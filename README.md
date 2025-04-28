@@ -28,8 +28,6 @@ EloQuiz/
 
 └── README.md            # You’re here!
 
----
-
 ## 🛠️ Getting Started
 
 ### 🔧 Prerequisites
