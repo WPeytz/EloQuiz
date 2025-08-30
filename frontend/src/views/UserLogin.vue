@@ -18,14 +18,15 @@
       </form>
       <div class="additional-links">
         <p>Har du ikke en konto? <button @click="goToSignUp" class="link-button">Tilmeld dig</button></p>
+        <p>Glemt adgangskode? <button @click="forgotPassword" class="link-button" :disabled="resetLoading">{{ resetLoading ? "Sender..." : "Nulstil adgangskode" }}</button></p>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import firebaseApp from "../firebase";
 
 export default {
@@ -35,6 +36,7 @@ export default {
       email: "",
       password: "",
       loading: false, // Added loading state for UI feedback
+      resetLoading: false,
     };
   },
   methods: {
@@ -48,6 +50,7 @@ export default {
         debugger;
         const user = userCredential.user;
         console.log("User logged in:", user);
+        try { await setDoc(doc(getFirestore(), "users", user.uid), { lastLoginAt: serverTimestamp() }, { merge: true }); } catch (e) { /* ignore */ }
 
         // Fetch user role from Firestore
         const db = getFirestore();
@@ -69,14 +72,40 @@ export default {
             alert("Fejl: Ukendt brugerrolle.");
           }
         } else {
-          console.error("User data not found in Firestore");
-          alert("Fejl: Brugerdata ikke fundet.");
+          console.warn("User data not found in Firestore. Creating a default profile...");
+          // Auto-provision a minimal user profile on first login
+          await setDoc(userRef, {
+            role: "student",
+            email: user.email || "",
+            createdAt: serverTimestamp(),
+            lastLoginAt: serverTimestamp()
+          }, { merge: true });
+
+          // Route with default role
+          this.$router.push("/student-dashboard");
         }
       } catch (error) {
         console.error("Login error:", error.message);
         alert("Login mislykkedes: " + error.message);
       } finally {
         this.loading = false; // Reset loading state
+      }
+    },
+    async forgotPassword() {
+      const auth = getAuth(firebaseApp);
+      if (!this.email) {
+        alert("Indtast din email for at nulstille din adgangskode.");
+        return;
+      }
+      this.resetLoading = true;
+      try {
+        await sendPasswordResetEmail(auth, this.email);
+        alert("Vi har sendt en e-mail med et link til at nulstille din adgangskode.");
+      } catch (error) {
+        console.error("Password reset error:", error.message);
+        alert("Kunne ikke sende nulstillings-e-mail: " + error.message);
+      } finally {
+        this.resetLoading = false;
       }
     },
     goToSignUp() {
@@ -101,7 +130,7 @@ export default {
 .login-box {
   background: #ffffff;
   padding: 20px 40px;
-  border-radius: px;
+  border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   text-align: center;
   max-width: 400px;
