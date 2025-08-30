@@ -1,6 +1,9 @@
 # Exit on error
 set -e
 
+# Ensure we deploy to the correct GCP project
+gcloud config set project adaptivelearning-449114
+
 echo "Building backend Docker image..."
 docker build -t gcr.io/adaptivelearning-449114/adaptivelearning-backend ./backend
 
@@ -9,6 +12,7 @@ docker push gcr.io/adaptivelearning-449114/adaptivelearning-backend
 
 echo "Deploying backend to Google Cloud Run..."
 gcloud run deploy adaptivelearning-backend \
+  --project adaptivelearning-449114 \
   --image gcr.io/adaptivelearning-449114/adaptivelearning-backend \
   --min-instances=1 \
   --platform managed \
@@ -28,6 +32,7 @@ docker push gcr.io/adaptivelearning-449114/adaptivelearning-frontend
 
 echo "Deploying to Google Cloud Run..."
 gcloud run deploy adaptivelearning-frontend \
+  --project adaptivelearning-449114 \
   --image gcr.io/adaptivelearning-449114/adaptivelearning-frontend \
   --min-instances=1 \
   --platform managed \
@@ -35,4 +40,3 @@ gcloud run deploy adaptivelearning-frontend \
   --allow-unauthenticated
 
 echo "Deployment complete!"
-

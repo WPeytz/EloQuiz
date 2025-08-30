@@ -9,6 +9,8 @@ from google.cloud import secretmanager
 import random
 import json
 from openai import OpenAI
+from datetime import datetime
+from flask import Flask, Blueprint, request, jsonify
 
 
 quiz_bp = Blueprint('quiz', __name__)  # Define the Blueprint
@@ -458,6 +460,26 @@ def pre_generate_questions():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+# --- Flask app/blueprint export and health routes ---
+def create_app():
+    app = Flask(__name__)
+    # Register blueprint at root so routes remain /api/...
+    app.register_blueprint(quiz_bp)
+
+    @app.get("/")
+    def index():
+        return jsonify({"status": "ok", "service": "adaptivelearning-backend", "time": datetime.utcnow().isoformat() + "Z"})
+
+    @app.get("/api/health")
+    def health():
+        return jsonify({"status": "ok"}), 200
+
+    return app
+
+# Export an app instance for Gunicorn / Cloud Run
+app = create_app()
+
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5001))  # Use PORT env variable
-    quiz_bp.run(debug=True, host='0.0.0.0', port=port)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(debug=True, host='0.0.0.0', port=port)
